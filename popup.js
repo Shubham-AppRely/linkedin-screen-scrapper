@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     data.forEach((row) => {
       const values = [row.name, row.jobTitle, row.company, row.location];
-      csvRows.push(values.join(","));
+      csvRows.push(values.map((val) => `"${val}"`).join(",")); // Ensure proper CSV formatting
     });
 
     return csvRows.join("\n");
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const downloadCSV = () => {
     chrome.storage.local.get(["scrapedData"], (result) => {
-      const scrapedData = result.scrapedData || [];
+      let scrapedData = result.scrapedData || [];
       if (scrapedData.length === 0) {
         alert("No data to download!");
         return;
@@ -29,11 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const a = document.createElement("a");
       const now = new Date();
-      const formattedDate = now
-        .toISOString()
-        .replace(/T/, "_")
-        .replace(/:/g, "-")
-        .split(".")[0]; // YYYY-MM-DD_HH-MM-SS
+      const formattedDate = now.toISOString().replace(/T/, "_").replace(/:/g, "-").split(".")[0];
       const fileName = `scraped_data_${formattedDate}.csv`;
 
       a.href = url;
@@ -41,6 +37,12 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
 
       URL.revokeObjectURL(url);
+
+      // ✅ Clear local storage after download
+      chrome.storage.local.remove("scrapedData", () => {
+        console.log("Local storage cleared after download.");
+        output.innerText = "No data saved. Click 'Scrape Data' to start.";
+      });
 
       // 🔥 Close the popup automatically after 500ms
       setTimeout(() => window.close(), 500);
@@ -57,18 +59,14 @@ document.addEventListener("DOMContentLoaded", () => {
         () => {
           console.log("Content script injected");
 
-          chrome.tabs.sendMessage(
-            tabs[0].id,
-            { action: "scrape" },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                console.error("Error:", chrome.runtime.lastError.message);
-                alert("Please refresh the page and try again.");
-                return;
-              }
-              console.log("Scraping initiated:", response);
+          chrome.tabs.sendMessage(tabs[0].id, { action: "scrape" }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("Error:", chrome.runtime.lastError.message);
+              alert("Please refresh the page and try again.");
+              return;
             }
-          );
+            console.log("Scraping initiated:", response);
+          });
         }
       );
     });
@@ -77,13 +75,26 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "scrapedData") {
       console.log("Received Data:", message.data);
-      output.innerText = JSON.stringify(message.data, null, 2);
 
-      // 🔥 Clear old data before storing new values
-      chrome.storage.local.set({ scrapedData: message.data }, () => {
-        console.log("New Data Saved to Local Storage:", message.data);
+      chrome.storage.local.get(["scrapedData"], (result) => {
+        let oldData = result.scrapedData || [];
+
+        // ✅ Ensure no duplicate entries using a Set
+        const mergedData = [...oldData, ...message.data];
+        const uniqueData = Array.from(new Map(mergedData.map((item) => [item.name, item])).values());
+
+        chrome.storage.local.set({ scrapedData: uniqueData }, () => {
+          console.log(`Updated Data Saved. Total Entries: ${uniqueData.length}`);
+          output.innerText = `Total Data Saved: ${uniqueData.length}`;
+        });
       });
     }
+  });
+
+  // ✅ Show existing count when opening the popup
+  chrome.storage.local.get(["scrapedData"], (result) => {
+    const savedData = result.scrapedData || [];
+    output.innerText = `Total Data Saved: ${savedData.length}`;
   });
 
   downloadBtn.addEventListener("click", downloadCSV);

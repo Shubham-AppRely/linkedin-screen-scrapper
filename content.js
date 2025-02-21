@@ -1,6 +1,3 @@
-console.log("Content script loaded");
-
-// Function to get text safely
 const getText = (element) => (element ? element.innerText.trim() : "Not Found");
 
 // Function to scrape all user profiles
@@ -16,7 +13,8 @@ const scrapeData = () => {
 
     userProfiles.forEach(profile => {
         const nameElement = profile.querySelector("a span");
-        const jobTitleElement = profile.closest("div.VtAdXMOKQZzgQyUygVuqEaRNPbGrJTiFIXncwI").querySelector("div[data-anonymize='job-title']");
+        const jobTitleElement = profile.closest("tr")?.querySelector("div[data-anonymize='job-title']");
+
         const companyElement = profile.closest("tr").querySelector("td.list-people-detail-header__account span[data-anonymize='company-name']");
         const locationElement = profile.closest("tr").querySelector("td.list-people-detail-header__geography");
 
