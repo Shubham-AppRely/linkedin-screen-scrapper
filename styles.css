@@ -1,17 +1,34 @@
 body {
     font-family: Arial, sans-serif;
-    text-align: center;
-    width: 300px;
     padding: 10px;
+    width: 300px;
+    box-sizing: border-box;
 }
-button {
-    margin: 5px;
-    padding: 8px;
+
+button, input {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    width: calc(100% - 2px);
+    display: block;
+    box-sizing: border-box;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: #f8f8f8;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+/* 🔥 Red styling for the Clear Data button */
+#clearBtn {
+    background-color: red;
+    color: white;
+    border: none;
     cursor: pointer;
 }
-#output {
-    margin-top: 10px;
-    font-size: 12px;
-    white-space: pre-wrap;
-    text-align: left;
+
+#clearBtn:hover {
+    background-color: darkred;
 }
